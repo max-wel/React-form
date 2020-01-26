@@ -4,7 +4,7 @@ export const formatCardNumber = value => {
     formattedNumber.push(value.substring(i, i + 4));
   }
   if (formattedNumber.length) {
-    return formattedNumber.join("-");
+    return formattedNumber.join(" ");
   }
   return value;
 };

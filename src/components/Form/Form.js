@@ -1,11 +1,8 @@
 import React, { Component } from "react";
-import * as yup from "yup";
+import * as Yup from "yup";
 import Input from "../Input/Input";
 import formSchema from "../../validations/formSchema";
-import {
-  sanitizeNumber,
-  sanitizeExpirationDate
-} from "../../helpers/sanitizeInput";
+import { sanitizeField } from "../../helpers/sanitizeInput";
 import {
   formatCardNumber,
   formatExpirationDate
@@ -29,8 +26,7 @@ class Form extends Component {
 
   validate = () => {
     try {
-      yup
-        .object()
+      Yup.object()
         .shape(formSchema)
         .validateSync(this.state.data, { abortEarly: false });
       return null;
@@ -41,13 +37,13 @@ class Form extends Component {
 
   validateField = ({ name, value }) => {
     let sanitizedValue = value;
-    // Remove slash and hypen from card number and expiration date before validation
+
     if (name === "cardNumber" || name === "expirationDate") {
-      sanitizedValue = value.replace(/[-/]/g, "");
+      sanitizedValue = value.replace(/[\s/]/g, "");
     }
     const data = { [name]: sanitizedValue };
     const fieldSchema = { [name]: formSchema[name] };
-    // check if confirm password matches password
+
     if (name === "confirmPassword") {
       if (value !== this.state.data.password) {
         return "Passwords do not match";
@@ -56,8 +52,7 @@ class Form extends Component {
     }
 
     try {
-      yup
-        .object()
+      Yup.object()
         .shape(fieldSchema)
         .validateSync(data);
     } catch (error) {
@@ -68,7 +63,6 @@ class Form extends Component {
 
   handleChange = ({ target: input }) => {
     const { name, value } = input;
-    // validate input field
     const errorMessage = this.validateField(input);
     const errors = { ...this.state.errors };
     if (errorMessage) {
@@ -77,39 +71,19 @@ class Form extends Component {
       delete errors[name];
     }
 
-    if (name === "pin" || name === "cardNumber") {
-      const modifiedValue = sanitizeNumber(value);
-      if (modifiedValue === "not-number") {
-        return;
-      }
-      const data = { ...this.state.data, [name]: modifiedValue };
-      return this.setState({
-        data,
-        errors
-      });
-    }
+    const sanitizedValue = sanitizeField(name, value);
 
-    if (name === "expirationDate") {
-      const modifiedValue = sanitizeExpirationDate(value);
-      if (modifiedValue === "invalid expiration") {
-        return;
-      }
-      const data = { ...this.state.data, [name]: modifiedValue };
-      return this.setState({
-        data,
-        errors
-      });
+    if (sanitizedValue === "invalid input") {
+      return;
     }
-
     if (name === "password") {
       if (value === this.state.data.confirmPassword) {
         delete errors["confirmPassword"];
         this.setState({ errors });
       }
     }
-
-    const data = { ...this.state.data, [name]: value };
-    this.setState({
+    const data = { ...this.state.data, [name]: sanitizedValue };
+    return this.setState({
       data,
       errors
     });
@@ -164,6 +138,7 @@ class Form extends Component {
                 value={phone}
                 onChange={this.handleChange}
                 errors={errors}
+                maxLength={11}
               />
               <Input
                 type="password"
@@ -187,7 +162,7 @@ class Form extends Component {
                 type="text"
                 label="Card number"
                 name="cardNumber"
-                placeholder="XXXX-XXXX-XXXX-XXXX"
+                placeholder="XXXX XXXX XXXX XXXX"
                 value={formatCardNumber(cardNumber)}
                 onChange={this.handleChange}
                 errors={errors}
@@ -203,7 +178,7 @@ class Form extends Component {
                 errors={errors}
               />
               <Input
-                type="text"
+                type="password"
                 label="PIN"
                 name="pin"
                 placeholder="****"
